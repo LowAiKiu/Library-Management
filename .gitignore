@@ -1,0 +1,16 @@
+# Build output
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Generated files
+LibraryManagement.Wpf/WebTemplate/shell.html
+
+# Secrets (update connection string before committing)
+# appsettings.json
+
+# Rider / Resharper
+.idea/
+*.DotSettings.user

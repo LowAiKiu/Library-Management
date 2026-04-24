@@ -1,0 +1,494 @@
+<!doctype html>
+<html xmlns:th="http://www.thymeleaf.org"
+	  xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4">
+
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title>Book Library | Chi tiết sách - Admin</title>
+	<meta name="description" content="">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<link rel="stylesheet" href="../css/bootstrap.min.css">
+	<link rel="stylesheet" href="../css/normalize.css">
+	<link rel="stylesheet" href="../css/font-awesome.min.css">
+	<link rel="stylesheet" href="../css/icomoon.css">
+	<link rel="stylesheet" href="../css/jquery-ui.css">
+	<link rel="stylesheet" href="../css/owl.carousel.css">
+	<link rel="stylesheet" href="../css/transitions.css">
+	<link rel="stylesheet" href="../css/main.css">
+	<link rel="stylesheet" href="../css/color.css">
+	<link rel="stylesheet" href="../css/responsive.css">
+	<script src="../js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
+</head>
+
+<body>
+	<header id="tg-header" class="tg-header tg-haslayout">
+		<div class="tg-topbar">
+			<div class="container">
+				<div class="row">
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+						<div class="tg-userlogin">
+							<div>
+							<li style="list-style:none ;" class="menu-item-has-children"
+								sec:authorize = "isAuthenticated()">
+								<a href=""> <i id="user_icon" class="fa fa-user"></i> Xin chào <span class="sr-only"></span></a>
+								<div class="mega-menu user">
+									<ul class="tg-themetabnav " role="tablist">
+										<li><a th:href="@{/profile}">Trang cá nhân<span class="sr-only">(current)</span></a></li>
+										<li><a th:href="@{/orders}" sec:authorize = "hasRole('USER')">Thông tin mua hàng<span class="sr-only">(current)</span></a></li>
+										<li><a class="tg-userlogout" th:href="@{/logout}">Đăng xuất<span class="sr-only">(current)</span></a></li>
+									</ul>
+							</li>
+							<br>
+							<a class="nav-link text" th:href="@{/signup}"
+							   style="margin-right: 30px" sec:authorize = "!isAuthenticated()">
+								Đăng kí<span class="sr-only">(current)</span></a>
+							<a class="nav-link text" th:href="@{/login}"
+							   sec:authorize = "!isAuthenticated()">
+								Đăng nhập<span class="sr-only">(current)</span></a>
+						</div>
+						</div>
+						<div>
+							
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="tg-middlecontainer" style="padding: 10pxpx;">
+			<div class="container">
+				<div class="row">
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+						<strong class="tg-logo"><a href="index-2.html"><img src="images/logo.png" alt="company name here"></a></strong>
+						<div class="tg-wishlistandcart">
+							<div sec:authorize = "hasRole('USER')" class="dropdown tg-themedropdown tg-minicartdropdown">
+								<a  id="tg-minicart" class="tg-btnthemedropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+									<span class="tg-themebadge" th:text="${cartInfo.getTotalBooks()}"></span>
+									<a th:href="@{view-cart}"><i class="icon-cart"></i>
+									  <span style="margin-left: 10px;">Giỏ hàng</span></a>
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="tg-navigationarea">
+			<div class="container">
+				<div class="row">
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+						<nav id="tg-nav" class="tg-nav">
+							<div class="navbar-header">
+								<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#tg-navigation" aria-expanded="false">
+									<span class="sr-only">Toggle navigation</span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+									<span class="icon-bar"></span>
+								</button>
+							</div>
+							<div id="tg-navigation" class="collapse navbar-collapse tg-navigation">
+								<ul>
+									<li><a th:href="@{/}">Trang chủ</a></li>
+									<li><a th:href="@{/products}" sec:authorize = "!hasRole('ADMIN')">Sách</a></li>
+									<li><a th:href="@{/manage-product}" sec:authorize = "hasRole('ADMIN')">Sách</a></li>
+									<li><a th:href="@{/manage-category}" sec:authorize = "hasRole('ADMIN')">Danh mục</a></li>
+									<li><a th:href="@{/manage-author}" sec:authorize = "hasRole('ADMIN')">Tác giả</a></li>
+									<li><a th:href="@{/manage-user}" sec:authorize = "hasRole('ADMIN')">Khách hàng</a></li>
+									<li><a th:href="@{/manage-order}" sec:authorize = "hasRole('ADMIN')">Đơn hàng</a></li>
+								</ul>
+							</div>
+						</nav>
+					</div>
+				</div>
+			</div>
+		</div>
+	</header>
+	<div class="tg-innerbanner tg-haslayout tg-parallax tg-bginnerbanner" data-z-index="-100"
+		data-appear-top-offset="600" data-parallax="scroll" data-image-src="../images/parallax/bgparallax-07.jpg">
+		<div class="container">
+			<div class="row">
+				<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+					<div class="tg-innerbannercontent">
+						<h1 style="margin-bottom: 20px;">Thông tin về sách</h1>
+						<ol class="tg-breadcrumb">
+							<li><a href="javascript:void(0);">Trang Chủ</a></li>
+							<li><a href="javascript:void(0);">Sách</a></li>
+						</ol>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<form th:object="${book}" method="post" th:action="@{/save-product}"
+						  enctype="multipart/form-data">
+	<main id="tg-main" class="tg-main tg-haslayout">
+		<!-- <h2 style="margin-top: 20px; text-align: center;">Sách</h2> -->
+		<div class="tg-sectionspace tg-haslayout">
+			<div class="container">
+				<div class="row">
+						<input type="hidden" th:field="*{id}"/>
+						<input type="hidden" th:field="*{newBook}"/>
+						<div id="tg-twocolumns" class="tg-twocolumns">
+							<div class="col-xs-12 col-sm-8 col-md-8 col-lg-8 pull-left">
+								<div id="tg-content" class="tg-content">
+									<div class="tg-productdetail">
+										<div class="row">
+											<div th:if="${error != null}" class='col s12 alert alert-danger' role="alert" style="width: 250px;">
+												<span>Sách bị trùng tiêu đề và tác giả</span>
+											  </div>
+											<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+												<div class="form-group">
+													<label for="bookname"><span style="color: red;">*</span>Tiêu đề</label>
+													<input th:if="${!action.equals('create')}" th:field="*{title}" type="text"
+														 class="form-control" id="bookname" disabled>
+													<input th:if="${action.equals('create')}" th:field="*{title}" type="text"
+													class="form-control" id="bookname" required>
+													<p id="bookname_error" style="color: red;" hidden> Trường này không được để trống </p>
+												</div>
+											</div>
+											<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+												<div class="form-group">
+													<label for="author"><span style="color: red;">*</span>Tác giả</label>
+													<select th:if="${!action.equals('create')}" id="author" class="form-control" name="authorInfo" disabled>
+														<option th:text="${book.author != null} ? ${book.author.name} : ''" selected></option>
+														<th:block th:each="author: ${authorList}">
+																<option th:text="${author.name}"></option>
+														</th:block>
+													</select>
+													<select th:if="${action.equals('create')}" id="author" class="form-control" name="authorInfo" required>
+														<option th:text="${book.author != null} ? ${book.author.name} : ''" selected></option>
+														<th:block th:each="author: ${authorList}">
+																<option th:text="${author.name}"></option>
+														</th:block>
+													</select>
+												</div>
+											</div>
+										</div>
+										<div class="row" style="margin-left: 2px;">
+											<!-- <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12"> -->
+											<div class="form-group">
+												<label for="description"><span style="color: red;">*</span>Mô tả</label>
+												<textarea  th:if="${!action.equals('create')}" id="description" th:field="*{description}" class="form-control" rows="3"
+													style="width: 90%; height: 50%;" disabled></textarea>
+												<textarea  th:if="${action.equals('create')}" id="description" th:field="*{description}" class="form-control" rows="3"
+												style="width: 90%; height: 50%;" required></textarea>	
+												<!-- </div> -->
+											</div>
+
+										</div>
+										<div class="row">
+											<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+												<div class="form-group">
+													<label for="export"><span style="color: red;">*</span>Ngày phát hành</label>
+													<input th:if="${!action.equals('create')}" type="date" th:field="*{date_publication}" class="form-control" id="export" disabled>
+													<input th:if="${action.equals('create')}" type="date" th:field="*{date_publication}" class="form-control" id="export" required>
+												
+												</div>
+											</div>
+											<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+												<div class="form-group">
+													<label for="page"><span style="color: red;">*</span>Số trang</label>
+													<input th:if="${!action.equals('create')}" type="number" th:field="*{number_page}" min="1" class="form-control" id="page" disabled>
+													<input th:if="${action.equals('create')}" type="number" th:field="*{number_page}" min="1" class="form-control" id="page" required>
+												</div>
+											</div>
+										</div>
+										<div class="row">
+											<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+												<div class="form-group">
+													<label for="category"><span style="color: red;">*</span>Danh mục</label>
+													<select th:if="${!action.equals('create')}" id="category" name="categoryInfo" class="form-control" disabled>
+															<option th:text="${book.category != null} ? ${book.category.name} : ''" selected></option>
+														<th:block th:each="category: ${categoryList}">
+															<option th:if="${book.id == null || book.category != null && !category.name.equals(book.category.name)}"
+																	th:text="${category.name}"></option>
+														</th:block>
+													</select>
+													<select th:if="${action.equals('create')}" id="category" name="categoryInfo" class="form-control" required>
+															<option th:text="${book.category != null} ? ${book.category.name} : ''" selected></option>
+														<th:block th:each="category: ${categoryList}">
+															<option th:if="${book.id == null || book.category != null && !category.name.equals(book.category.name)}"
+																	th:text="${category.name}"></option>
+														</th:block>
+												</select>
+												</div>
+											</div>
+											<div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+												<div class="form-group">
+													<label for="price"><span style="color: red;">*</span>Đơn giá</label>
+													<input th:if="${!action.equals('create')}" type="number" th:field="*{price}" min="1" class="form-control" id="price" disabled>
+													<input th:if="${action.equals('create')}" type="number" th:field="*{price}" min="1" class="form-control" id="price" required>
+												</div>
+											</div>
+										</div>
+
+									</div>
+
+								</div>
+							</div>
+							<div class="col-xs-12 col-sm-4 col-md-4 col-lg-4 pull-right">
+								<aside id="tg-sidebar" class="tg-sidebar">
+									<button type="button" onclick="document.getElementById('book-image').click()" class="btn btn-success"
+										style="margin-left: -150px;">Upload</button>
+									<div class="tg-widget tg-widgetsearch"
+										style="border: 2px dotted; max-width: 230px; margin-top: 70px; height: 300px; margin-left: 50px;">
+										<figure class="tg-featureimg">
+											<input type="file" id="book-image" name="book-image" 
+												   th:field="*{fileData}" style="display: none;" onchange="previewImage()">
+  											<img id="image-preview" th:src="@{|/bookImage?id=*{id}|}" alt="">
+										</figure>
+									</div>
+								</aside>
+							</div>
+						</div>
+						<br>
+                        <button th:if="${action.equals('create')}" type="button" class="btn btn-primary pull-right"  style="display:block;" 
+                            data-toggle="modal" data-target="#myModal_add" id="add-btn">Thêm</button>
+						<button th:if="${!action.equals('create')}" type="button" class="btn btn-warning pull-right" id="edit-btn" style="display:block;">Sửa</button>
+                        <button th:if="${!action.equals('create')}" type="button" class="btn btn-primary pull-right" id="save-btn" style="display:block;"
+                            data-toggle="modal" data-target="#myModal_save">Lưu</button>
+					
+				</div>
+			</div>
+		</div>
+	</main>
+    <div th:if="${action.equals('create')}" class="modal fade" id="myModal_add" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+						<button type="submit" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+					<h4 class="modal-title" style="text-transform: none;">Bạn chắc chắn muốn thêm cuốn sách này?</h4>
+				</div>
+				<div class="modal-body">
+				<form>
+					<button type="button" class="btn btn-default" data-dismiss="modal">Hủy</button>
+					<button type="submit" class="btn btn-primary">Xác nhận</button>
+				</form>
+				</div>
+			</div>
+		</div>
+	</div>
+    <div th:if="${!action.equals('create')}" class="modal fade" id="myModal_save" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<!-- <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button> -->
+					<h4 class="modal-title" style="text-transform: none;">Bạn chắc chắn muốn sửa thông tin này?</h4>
+				</div>
+				<div class="modal-body">
+				<form>
+					<button type="button" class="btn btn-default" data-dismiss="modal">Hủy</button>
+					<button type="submit" class="btn btn-primary">Xác nhận</button>
+				</form>
+				</div>
+			</div>
+		</div>
+	</div>
+	</form>
+	<footer id="tg-footer" class="tg-footer tg-haslayout">
+		<div class="tg-footerarea">
+			<div class="container">
+				<div class="row">
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+						<ul class="tg-clientservices">
+							<li class="tg-devlivery">
+								<span class="tg-clientserviceicon"><i class="icon-rocket"></i></span>
+								<div class="tg-titlesubtitle">
+									<h3>Vận chuyển </h3>
+									<p>Toàn quốc nhanh chóng</p>
+								</div>
+							</li>
+							<li class="tg-discount">
+								<span class="tg-clientserviceicon"><i class="icon-tag"></i></span>
+								<div class="tg-titlesubtitle">
+									<h3>Giá thành</h3>
+									<p>Hợp lí hấp dẫn</p>
+								</div>
+							</li>
+							<li class="tg-quality">
+								<span class="tg-clientserviceicon"><i class="icon-leaf"></i></span>
+								<div class="tg-titlesubtitle">
+									<h3>Chất lượng</h3>
+									<p>Chất lượng hàng đầu</p>
+								</div>
+							</li>
+							<li class="tg-support">
+								<span class="tg-clientserviceicon"><i class="icon-heart"></i></span>
+								<div class="tg-titlesubtitle">
+									<h3>Hỗ trợ 24/7</h3>
+									<p>Phục vụ mọi lúc</p>
+								</div>
+							</li>
+						</ul>
+					</div>
+					<div class="tg-threecolumns">
+						<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+							<div class="tg-footercol">
+								<strong class="tg-logo"><a href="javascript:void(0);"><img src="../images/flogo.png"
+											alt="image description"></a></strong>
+								<ul class="tg-contactinfo">
+									<li>
+										<i class="icon-apartment"></i>
+										<address>Hà Đông, Hà Nội, Việt Nam</address>
+									</li>
+									<li>
+										<i class="icon-phone-handset"></i>
+										<span>
+											<em>0812 567 889</em>
+											<em>+84 1245 6767</em>
+										</span>
+									</li>
+									<li>
+										<i class="icon-clock"></i>
+										<span>
+											Phục vụ 7 ngày trong tuần từ 9:00 - 22:00
+										</span>
+									</li>
+									<li>
+										<i class="icon-envelope"></i>
+										<span>
+											<em><a href="mailto:support@domain.com">support@booklibrary.com</a></em>
+											<em><a href="mailto:info@domain.com">info@booklibrary.com</a></em>
+										</span>
+									</li>
+								</ul>
+								<ul class="tg-socialicons">
+									<li class="tg-facebook"><a href="javascript:void(0);"><i
+												class="fa fa-facebook"></i></a></li>
+									<li class="tg-twitter"><a href="javascript:void(0);"><i
+												class="fa fa-twitter"></i></a></li>
+									<li class="tg-linkedin"><a href="javascript:void(0);"><i
+												class="fa fa-linkedin"></i></a></li>
+									<li class="tg-googleplus"><a href="javascript:void(0);"><i
+												class="fa fa-google-plus"></i></a></li>
+									<li class="tg-rss"><a href="javascript:void(0);"><i class="fa fa-rss"></i></a></li>
+								</ul>
+							</div>
+						</div>
+						<div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+							<div class="tg-footercol tg-widget tg-widgetnavigation">
+								<div class="tg-widgettitle">
+									<h3>Chúng tôi xin đảm bảo</h3>
+								</div>
+
+								<div class="tg-widgetcontent">
+
+									<ul>
+										<li><a href="javascript:void(0);">Luôn tôn trọng khách hàng</a></li>
+										<li><a href="javascript:void(0);">Bảo mật thông tin cần thiết</a></li>
+										<li><a href="javascript:void(0);">Sách chính hãng</a></li>
+										<li><a href="javascript:void(0);">Tuân theo quy định mua bán</a></li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="tg-footerbar">
+			<a id="tg-btnbacktotop" class="tg-btnbacktotop" href="../javascript:void(0);"><i
+					class="icon-chevron-up"></i></a>
+			<div class="container">
+				<div class="row">
+					<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+						<span class="tg-paymenttype"><img src="../images/paymenticon.png"
+								alt="image description"></span>
+						<span class="tg-copyright">2023 All Rights Reserved By &copy; Book Library</span>
+					</div>
+				</div>
+			</div>
+		</div>
+	</footer>
+	</div>
+	<script src="../js/vendor/jquery-library.js"></script>
+	<script src="../js/vendor/bootstrap.min.js"></script>
+	<script src="../js/owl.carousel.min.js"></script>
+	<script src="../js/jquery.vide.min.js"></script>
+	<script src="../js/countdown.js"></script>
+	<script src="../js/jquery-ui.js"></script>
+	<script src="../js/parallax.js"></script>
+	<script src="../js/countTo.js"></script>
+	<script src="../js/appear.js"></script>
+	<!-- <script>
+		$('#add-btn').on('click', function() {
+			$('.modal-backdrop').remove()
+		$('#myModal_add').removeClass('in')
+		required_fields = ['bookname']
+		var sts = true
+		for (field of required_fields) {
+			if ($(`#${field}`).val() == "") {
+				console.log(`${field}_error`);
+				$(`#${field}_error`).show()
+				sts = false
+			}
+		}
+		if(sts) {
+			$('#myModal_add').addClass('in')
+			$('body').append($('div').addClass('modal-backdrop fade'))
+		}
+	})
+	</script> -->
+	<script src="../js/main.js"></script>
+    <script>
+		
+        const editBtn = document.querySelector('#edit-btn');
+        const saveBtn = document.querySelector('#save-btn');
+        const addBtn = document.querySelector('#add-btn');
+        // const uploadBtn = document.querySelector('#book-upload-btn');
+        const uploadBtn = document.querySelector('button[type="button"]');
+
+        const bookTitle = document.querySelector('#bookname');
+        const bookAuthor = document.querySelector('#author');
+        const bookDes = document.querySelector('#description');
+        const bookDate = document.querySelector('#export');
+        const bookPage = document.querySelector('#page');
+        const bookCat = document.querySelector('#category');
+        const bookPrice = document.querySelector('#price');
+    
+        function previewImage() {
+            const preview = document.querySelector('#image-preview');
+            const file = document.querySelector('#book-image').files[0];
+            const reader = new FileReader();
+    
+            reader.addEventListener('load', function () {
+                // Chuyển đổi file hình ảnh thành chuỗi base64
+                preview.src = reader.result;
+            }, false);
+    
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        }
+    
+        editBtn.addEventListener('click', function (event) {
+            event.preventDefault();
+
+            if (editBtn.innerHTML === 'Sửa') {
+                bookTitle.disabled = true;
+                bookAuthor.disabled = true;
+                bookDes.disabled = false;
+                bookDate.disabled = false;
+                bookPage.disabled = true;
+                bookCat.disabled = false;
+                bookPrice.disabled = false;
+                uploadBtn.style.display = 'inline-block';
+                saveBtn.style.display = 'block';
+                editBtn.style.display = 'none';
+                addBtn.style.display = 'none';
+            }
+        });
+        // Ẩn nút "Lưu" ban đầu
+        saveBtn.style.display = 'none';
+
+    document.querySelector('#book-upload-btn').addEventListener('click', function () {
+            document.querySelector('#book-image').click();
+        });
+    </script>
+	<script>
+		
+	</script>
+</body>
+
+</html>
