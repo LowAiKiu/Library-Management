@@ -329,6 +329,19 @@ input:focus,select:focus,textarea:focus{{outline:none;border-color:var(--primary
 
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
+        try
+        {
+            DispatchWebMessage(e);
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Internal error:\n{ex.GetType().Name}: {ex.Message}\n\n{ex.StackTrace}", "App Error");
+        }
+        _ = PushStateAndRenderAsync();
+    }
+
+    private void DispatchWebMessage(CoreWebView2WebMessageReceivedEventArgs e)
+    {
         var json = e.TryGetWebMessageAsString();
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
@@ -376,6 +389,14 @@ input:focus,select:focus,textarea:focus{{outline:none;border-color:var(--primary
                         _cart[uid.GetInt32()] = (q, existing.IsPurchase);
                 }
                 break;
+            case "setCartType":
+                if (root.TryGetProperty("bookId", out var stid) && root.TryGetProperty("isPurchase", out var stip))
+                {
+                    var bid = stid.GetInt32();
+                    if (_cart.TryGetValue(bid, out var ex))
+                        _cart[bid] = (ex.Qty, stip.GetBoolean());
+                }
+                break;
             case "checkout":
                 HandleCheckout(root);
                 break;
@@ -385,12 +406,20 @@ input:focus,select:focus,textarea:focus{{outline:none;border-color:var(--primary
             case "deleteOrder":
                 if (root.TryGetProperty("orderId", out var oid))
                 {
-                    _repository.DeleteOrder(oid.GetInt32());
+                    HandleDeleteOrder(oid.GetInt32());
                 }
                 break;
             case "reminder":
-                var sent = _reminderService.ProcessDueReminders();
-                MessageBox.Show($"Đã gửi {sent} thông báo nhắc trả sách.");
+                if (!IsStaff()) { MessageBox.Show("Không có quyền."); break; }
+                try
+                {
+                    var sent = _reminderService.ProcessDueReminders();
+                    MessageBox.Show($"Đã gửi {sent} thông báo nhắc trả sách.");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi khi gửi nhắc:\n{ex.GetType().Name}: {ex.Message}\n\n{ex.InnerException?.Message}", "Reminder Error");
+                }
                 break;
             case "markNotifRead":
                 if (root.TryGetProperty("notifId", out var nid))
@@ -426,8 +455,6 @@ input:focus,select:focus,textarea:focus{{outline:none;border-color:var(--primary
                 HandleDeleteBook(root);
                 break;
         }
-
-        _ = PushStateAndRenderAsync();
     }
 
     private static bool RequiresLogin(string view) =>
@@ -542,6 +569,20 @@ input:focus,select:focus,textarea:focus{{outline:none;border-color:var(--primary
 
     private bool IsStaff() => _currentUser?.Role is UserRole.Admin or UserRole.Librarian;
 
+    private void HandleDeleteOrder(int orderId)
+    {
+        if (_currentUser is null) { MessageBox.Show("Vui lòng đăng nhập."); return; }
+        var order = _repository.GetOrders().FirstOrDefault(o => o.Id == orderId);
+        if (order is null) { MessageBox.Show("Không tìm thấy đơn."); return; }
+        // Chỉ chủ đơn hoặc nhân viên mới được xoá
+        if (order.UserId != _currentUser.Id && !IsStaff())
+        {
+            MessageBox.Show("Bạn không có quyền xoá đơn này.");
+            return;
+        }
+        _repository.DeleteOrder(orderId);
+    }
+
     private void HandleCreateBook(JsonElement root)
     {
         if (!IsStaff()) { MessageBox.Show("Không có quyền."); return; }
@@ -652,8 +693,15 @@ input:focus,select:focus,textarea:focus{{outline:none;border-color:var(--primary
 
         var bookId = root.TryGetProperty("bookId", out var b) ? b.GetInt32() : 0;
         var rating = root.TryGetProperty("rating", out var r) ? r.GetInt32() : 5;
-        var content = root.TryGetProperty("content", out var cn) ? cn.GetString() ?? "" : "";
+        var content = (root.TryGetProperty("content", out var cn) ? cn.GetString() ?? "" : "").Trim();
         if (bookId == 0) return;
+        if (_repository.GetBook(bookId) is null)
+        {
+            MessageBox.Show("Sách không tồn tại.");
+            return;
+        }
+        rating = Math.Clamp(rating, 1, 5);
+        if (content.Length > 1000) content = content[..1000];
 
         _repository.AddReview(new BookReview
         {
@@ -762,7 +810,8 @@ input:focus,select:focus,textarea:focus{{outline:none;border-color:var(--primary
   window.doLogout=function(){window.callHost({action:'logout'});};
   window.doNav=function(v){window.callHost({action:'nav',target:v});};
   window.doDetail=function(id){window.callHost({action:'detail',bookId:id});};
-  window.doAdd=function(id,qty){window.callHost({action:'addToCart',bookId:id,quantity:qty||1});};
+  window.doAdd=function(id,qty,isPurchase){window.callHost({action:'addToCart',bookId:id,quantity:qty||1,isPurchase:!!isPurchase});};
+  window.doSetType=function(id,isPurchase){window.callHost({action:'setCartType',bookId:id,isPurchase:!!isPurchase});};
   window.doRemove=function(id){window.callHost({action:'removeCart',bookId:id});};
   window.doQty=function(id,v){window.callHost({action:'updateQty',bookId:id,quantity:parseInt(v)||0});};
   window.doCheckout=function(){var c=document.getElementById('couponInput');window.callHost({action:'checkout',coupon:c?c.value:''});};
@@ -905,9 +954,12 @@ input:focus,select:focus,textarea:focus{{outline:none;border-color:var(--primary
     var s=window.appState,cart=s.cart||[],total=cart.reduce(function(sum,c){return sum+c.effectivePrice*c.quantity;},0);
     if(!cart.length)return'<div class=""page""><div class=""section-title"">🛒 Giỏ hàng</div><p>Giỏ hàng trống. <a onclick=""window.doNav(\'products\')"" style=""color:#1E88E5;cursor:pointer;"">Xem sách →</a></p></div>';
     var rows=cart.map(function(c){
-      var typeBadge=c.isPurchase?'<span class=""badge badge-yellow"">Mua</span>':'<span class=""badge badge-blue"">Mượn</span>';
+      var typeRadios='<div style=""margin-top:4px;font-size:12px;display:flex;gap:8px;"">'+
+        '<label style=""cursor:pointer;""><input type=""radio"" name=""ctype_'+c.bookId+'"" value=""borrow""'+(c.isPurchase?'':' checked')+' onchange=""window.doSetType('+c.bookId+',false)""> Mượn ('+money(c.borrowPrice)+')</label>'+
+        '<label style=""cursor:pointer;""><input type=""radio"" name=""ctype_'+c.bookId+'"" value=""buy""'+(c.isPurchase?' checked':'')+' onchange=""window.doSetType('+c.bookId+',true)""> Mua ('+money(c.buyPrice)+')</label>'+
+      '</div>';
       return'<tr>'+
-        '<td style=""padding:10px;""><div style=""display:flex;align-items:center;gap:10px;""><img src=""'+esc(c.cover)+'"" onerror=""this.src=\'images/books/img-01.jpg\'"" style=""width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;""/><div><div>'+esc(c.name)+'</div><div style=""margin-top:4px;"">'+typeBadge+'</div></div></div></td>'+
+        '<td style=""padding:10px;""><div style=""display:flex;align-items:center;gap:10px;""><img src=""'+esc(c.cover)+'"" onerror=""this.src=\'images/books/img-01.jpg\'"" style=""width:56px;height:56px;object-fit:cover;border-radius:6px;flex-shrink:0;""/><div style=""flex:1;""><div><b>'+esc(c.name)+'</b></div>'+typeRadios+'</div></div></td>'+
         '<td style=""text-align:center;white-space:nowrap;"">'+money(c.effectivePrice)+'</td>'+
         '<td style=""text-align:center;""><input type=""number"" min=""1"" value=""'+c.quantity+'"" style=""width:60px;text-align:center;"" onchange=""window.doQty('+c.bookId+',this.value)""></td>'+
         '<td style=""text-align:center;font-weight:600;"">'+money(c.effectivePrice*c.quantity)+'</td>'+

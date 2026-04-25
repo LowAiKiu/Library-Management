@@ -58,13 +58,24 @@ public class EfLibraryRepository(LibraryDbContext dbContext) : ILibraryRepositor
 
     public void CreateBook(Book book)
     {
+        if (string.IsNullOrWhiteSpace(book.Name))
+            throw new InvalidOperationException("Tên sách không được trống.");
+        if (book.InventoryCount < 0) book.InventoryCount = 0;
+        if (book.BasePrice < 0) book.BasePrice = 0;
         dbContext.Books.Add(book);
         dbContext.SaveChanges();
     }
 
     public void UpdateBook(Book book)
     {
-        dbContext.Books.Update(book);
+        if (book.InventoryCount < 0) book.InventoryCount = 0;
+        if (book.BasePrice < 0) book.BasePrice = 0;
+        // Nếu entity đã được track (cùng Id) thì chỉ SaveChanges; nếu detached thì attach + Modified
+        var tracked = dbContext.ChangeTracker.Entries<Book>().FirstOrDefault(e => e.Entity.Id == book.Id)?.Entity;
+        if (tracked is null)
+        {
+            dbContext.Books.Update(book);
+        }
         dbContext.SaveChanges();
     }
 
@@ -111,7 +122,15 @@ public class ConsoleNotificationSender : INotificationSender
 {
     public void SendEmail(string toEmail, string subject, string body)
     {
-        Console.WriteLine($"[SMTP MOCK] To={toEmail} Subject={subject} Body={body}");
+        // WPF không có console gắn, dùng Debug để tránh IOException khi stdout bị redirect
+        try
+        {
+            System.Diagnostics.Debug.WriteLine($"[SMTP MOCK] To={toEmail} Subject={subject} Body={body}");
+        }
+        catch
+        {
+            // không bao giờ phá luồng business chỉ vì log
+        }
     }
 }
 
@@ -160,22 +179,22 @@ public static class SeedData
 
         var books = new List<Book>
         {
-            new() { Name = "De Men Phieu Luu Ky", Author = "To Hoai", Category = "Van hoc", Summary = "Hanh trinh phieu luu cua chu de men dung cam.", CoverImageUrl = "images/books/De_men_To_Hoai.jpg", InventoryCount = 15, BorrowCount = 14, BasePrice = 85000, DiscountPercent = 10, NumberSold = 40, NumberPage = 180, DatePublication = "2010-05-20" },
-            new() { Name = "Tu Ay", Author = "To Huu", Category = "Tho", Summary = "Tap tho truyen cam hung.", CoverImageUrl = "images/books/Tu_ay_To_Huu.jpg", InventoryCount = 10, BorrowCount = 5, BasePrice = 70000, DiscountPercent = 5, NumberSold = 22, NumberPage = 200, DatePublication = "2011-08-15" },
-            new() { Name = "Luoc Su Kinh Te Hoc", Author = "Niall Kishtainy", Category = "Kinh te", Summary = "Lich su tom tat nganh kinh te.", CoverImageUrl = "images/books/luoc-su-kinh-te-hoc.jpg", InventoryCount = 9, BorrowCount = 12, BasePrice = 150000, DiscountPercent = 10, NumberSold = 30, NumberPage = 320, DatePublication = "2019-02-10" },
-            new() { Name = "Ta Ba Lo Tren Dat A", Author = "Rosie Nguyen", Category = "Du ky", Summary = "Hanh trinh kham pha chau A.", CoverImageUrl = "images/books/ta_ba_lo_tren_dat_a.jpg", InventoryCount = 8, BorrowCount = 4, BasePrice = 120000, DiscountPercent = 5, NumberSold = 18, NumberPage = 280, DatePublication = "2015-10-01" },
-            new() { Name = "Clean Code", Author = "Robert C. Martin", Category = "IT", Summary = "Guide for writing maintainable code.", CoverImageUrl = "images/books/img-01.jpg", InventoryCount = 12, BorrowCount = 15, BasePrice = 220000, DiscountPercent = 10, NumberSold = 45, NumberPage = 464, DatePublication = "2008-08-01" },
-            new() { Name = "Design Patterns", Author = "GoF", Category = "IT", Summary = "Classic software design pattern catalog.", CoverImageUrl = "images/books/img-02.jpg", InventoryCount = 9, BorrowCount = 9, BasePrice = 240000, DiscountPercent = 5, NumberSold = 20, NumberPage = 395, DatePublication = "1994-10-01" },
-            new() { Name = "The Pragmatic Programmer", Author = "Andy Hunt", Category = "IT", Summary = "Timeless software practices.", CoverImageUrl = "images/books/img-03.jpg", InventoryCount = 7, BorrowCount = 11, BasePrice = 210000, DiscountPercent = 10, NumberSold = 16, NumberPage = 352, DatePublication = "2019-09-13" },
-            new() { Name = "Refactoring", Author = "Martin Fowler", Category = "IT", Summary = "Improve the design of existing code.", CoverImageUrl = "images/books/img-04.jpg", InventoryCount = 6, BorrowCount = 3, BasePrice = 260000, DiscountPercent = 0, NumberSold = 8, NumberPage = 448, DatePublication = "2018-11-19" },
-            new() { Name = "Domain-Driven Design", Author = "Eric Evans", Category = "IT", Summary = "Tackling complexity in the heart of software.", CoverImageUrl = "images/books/img-05.jpg", InventoryCount = 5, BorrowCount = 6, BasePrice = 300000, DiscountPercent = 5, NumberSold = 12, NumberPage = 560, DatePublication = "2003-08-01" },
-            new() { Name = "You Don't Know JS", Author = "Kyle Simpson", Category = "IT", Summary = "Deep dive into JavaScript.", CoverImageUrl = "images/books/img-06.jpg", InventoryCount = 14, BorrowCount = 13, BasePrice = 180000, DiscountPercent = 10, NumberSold = 25, NumberPage = 278, DatePublication = "2015-12-27" },
-            new() { Name = "CLR via C#", Author = "Jeffrey Richter", Category = "IT", Summary = "Microsoft .NET Framework programming.", CoverImageUrl = "images/books/img-07.jpg", InventoryCount = 11, BorrowCount = 7, BasePrice = 320000, DiscountPercent = 0, NumberSold = 14, NumberPage = 896, DatePublication = "2012-11-15" },
-            new() { Name = "Code Complete", Author = "Steve McConnell", Category = "IT", Summary = "A practical handbook of software construction.", CoverImageUrl = "images/books/img-08.jpg", InventoryCount = 13, BorrowCount = 8, BasePrice = 250000, DiscountPercent = 5, NumberSold = 17, NumberPage = 960, DatePublication = "2004-06-01" },
-            new() { Name = "Tam Ly Hoc Ve Tien", Author = "Morgan Housel", Category = "Kinh te", Summary = "Nhung bai hoc ve tai chinh ca nhan.", CoverImageUrl = "images/books/img-09.jpg", InventoryCount = 20, BorrowCount = 18, BasePrice = 129000, DiscountPercent = 10, NumberSold = 55, NumberPage = 248, DatePublication = "2020-09-08" },
-            new() { Name = "Lich Su Thoi Gian", Author = "Stephen Hawking", Category = "Khoa hoc", Summary = "Gioi thieu vu tru hoc.", CoverImageUrl = "images/books/img-10.jpg", InventoryCount = 9, BorrowCount = 12, BasePrice = 160000, DiscountPercent = 5, NumberSold = 28, NumberPage = 256, DatePublication = "1988-04-01" },
-            new() { Name = "Nghe Thuat Ql Tai Chinh Ca Nhan", Author = "Napoleon Hill", Category = "Kinh te", Summary = "Huong dan quan ly tai chinh.", CoverImageUrl = "images/books/img-11.jpg", InventoryCount = 16, BorrowCount = 10, BasePrice = 110000, DiscountPercent = 5, NumberSold = 30, NumberPage = 300, DatePublication = "2012-01-01" },
-            new() { Name = "Thien Tai Ben Trai", Author = "Cao Minh", Category = "Tam ly", Summary = "Cau chuyen ve nhung nguoi dac biet.", CoverImageUrl = "images/books/img-12.jpg", InventoryCount = 18, BorrowCount = 22, BasePrice = 150000, DiscountPercent = 10, NumberSold = 60, NumberPage = 420, DatePublication = "2015-03-10" }
+            new() { Name = "De Men Phieu Luu Ky", Author = "To Hoai", Category = "Van hoc", Summary = "Hanh trinh phieu luu cua chu de men dung cam.", CoverImageUrl = "images/books/De_men_To_Hoai.jpg", InventoryCount = 15, BorrowCount = 14, BasePrice = 8500, DiscountPercent = 10, NumberSold = 40, NumberPage = 180, DatePublication = "2010-05-20" },
+            new() { Name = "Tu Ay", Author = "To Huu", Category = "Tho", Summary = "Tap tho truyen cam hung.", CoverImageUrl = "images/books/Tu_ay_To_Huu.jpg", InventoryCount = 10, BorrowCount = 5, BasePrice = 7000, DiscountPercent = 5, NumberSold = 22, NumberPage = 200, DatePublication = "2011-08-15" },
+            new() { Name = "Luoc Su Kinh Te Hoc", Author = "Niall Kishtainy", Category = "Kinh te", Summary = "Lich su tom tat nganh kinh te.", CoverImageUrl = "images/books/luoc-su-kinh-te-hoc.jpg", InventoryCount = 9, BorrowCount = 12, BasePrice = 15000, DiscountPercent = 10, NumberSold = 30, NumberPage = 320, DatePublication = "2019-02-10" },
+            new() { Name = "Ta Ba Lo Tren Dat A", Author = "Rosie Nguyen", Category = "Du ky", Summary = "Hanh trinh kham pha chau A.", CoverImageUrl = "images/books/ta_ba_lo_tren_dat_a.jpg", InventoryCount = 8, BorrowCount = 4, BasePrice = 12000, DiscountPercent = 5, NumberSold = 18, NumberPage = 280, DatePublication = "2015-10-01" },
+            new() { Name = "Clean Code", Author = "Robert C. Martin", Category = "IT", Summary = "Guide for writing maintainable code.", CoverImageUrl = "images/books/img-01.jpg", InventoryCount = 12, BorrowCount = 15, BasePrice = 22000, DiscountPercent = 10, NumberSold = 45, NumberPage = 464, DatePublication = "2008-08-01" },
+            new() { Name = "Design Patterns", Author = "GoF", Category = "IT", Summary = "Classic software design pattern catalog.", CoverImageUrl = "images/books/img-02.jpg", InventoryCount = 9, BorrowCount = 9, BasePrice = 24000, DiscountPercent = 5, NumberSold = 20, NumberPage = 395, DatePublication = "1994-10-01" },
+            new() { Name = "The Pragmatic Programmer", Author = "Andy Hunt", Category = "IT", Summary = "Timeless software practices.", CoverImageUrl = "images/books/img-03.jpg", InventoryCount = 7, BorrowCount = 11, BasePrice = 21000, DiscountPercent = 10, NumberSold = 16, NumberPage = 352, DatePublication = "2019-09-13" },
+            new() { Name = "Refactoring", Author = "Martin Fowler", Category = "IT", Summary = "Improve the design of existing code.", CoverImageUrl = "images/books/img-04.jpg", InventoryCount = 6, BorrowCount = 3, BasePrice = 26000, DiscountPercent = 0, NumberSold = 8, NumberPage = 448, DatePublication = "2018-11-19" },
+            new() { Name = "Domain-Driven Design", Author = "Eric Evans", Category = "IT", Summary = "Tackling complexity in the heart of software.", CoverImageUrl = "images/books/img-05.jpg", InventoryCount = 5, BorrowCount = 6, BasePrice = 30000, DiscountPercent = 5, NumberSold = 12, NumberPage = 560, DatePublication = "2003-08-01" },
+            new() { Name = "You Don't Know JS", Author = "Kyle Simpson", Category = "IT", Summary = "Deep dive into JavaScript.", CoverImageUrl = "images/books/img-06.jpg", InventoryCount = 14, BorrowCount = 13, BasePrice = 18000, DiscountPercent = 10, NumberSold = 25, NumberPage = 278, DatePublication = "2015-12-27" },
+            new() { Name = "CLR via C#", Author = "Jeffrey Richter", Category = "IT", Summary = "Microsoft .NET Framework programming.", CoverImageUrl = "images/books/img-07.jpg", InventoryCount = 11, BorrowCount = 7, BasePrice = 32000, DiscountPercent = 0, NumberSold = 14, NumberPage = 896, DatePublication = "2012-11-15" },
+            new() { Name = "Code Complete", Author = "Steve McConnell", Category = "IT", Summary = "A practical handbook of software construction.", CoverImageUrl = "images/books/img-08.jpg", InventoryCount = 13, BorrowCount = 8, BasePrice = 25000, DiscountPercent = 5, NumberSold = 17, NumberPage = 960, DatePublication = "2004-06-01" },
+            new() { Name = "Tam Ly Hoc Ve Tien", Author = "Morgan Housel", Category = "Kinh te", Summary = "Nhung bai hoc ve tai chinh ca nhan.", CoverImageUrl = "images/books/img-09.jpg", InventoryCount = 20, BorrowCount = 18, BasePrice = 12900, DiscountPercent = 10, NumberSold = 55, NumberPage = 248, DatePublication = "2020-09-08" },
+            new() { Name = "Lich Su Thoi Gian", Author = "Stephen Hawking", Category = "Khoa hoc", Summary = "Gioi thieu vu tru hoc.", CoverImageUrl = "images/books/img-10.jpg", InventoryCount = 9, BorrowCount = 12, BasePrice = 16000, DiscountPercent = 5, NumberSold = 28, NumberPage = 256, DatePublication = "1988-04-01" },
+            new() { Name = "Nghe Thuat Ql Tai Chinh Ca Nhan", Author = "Napoleon Hill", Category = "Kinh te", Summary = "Huong dan quan ly tai chinh.", CoverImageUrl = "images/books/img-11.jpg", InventoryCount = 16, BorrowCount = 10, BasePrice = 11000, DiscountPercent = 5, NumberSold = 30, NumberPage = 300, DatePublication = "2012-01-01" },
+            new() { Name = "Thien Tai Ben Trai", Author = "Cao Minh", Category = "Tam ly", Summary = "Cau chuyen ve nhung nguoi dac biet.", CoverImageUrl = "images/books/img-12.jpg", InventoryCount = 18, BorrowCount = 22, BasePrice = 15000, DiscountPercent = 10, NumberSold = 60, NumberPage = 420, DatePublication = "2015-03-10" }
         };
 
         foreach (var b in books)
@@ -202,22 +221,22 @@ public static class SeedData
 
         var orders = new List<BorrowOrder>
         {
-            new() { UserId = normalUser.Id, BorrowDate = now.AddDays(-10), DueDate = now.AddDays(1), Status = BorrowStatus.Borrowing, TotalAmount = 180000,
-                Items = { new BorrowOrderItem { BookId = Pick("Clean Code").Id, Quantity = 1, UnitPrice = 198000, IsPurchase = false } } },
-            new() { UserId = normalUser.Id, BorrowDate = now.AddMonths(-1), DueDate = now.AddMonths(-1).AddDays(14), Status = BorrowStatus.Returned, TotalAmount = 150000,
-                Items = { new BorrowOrderItem { BookId = Pick("Tam Ly Hoc Ve Tien").Id, Quantity = 1, UnitPrice = 116100, IsPurchase = false } } },
-            new() { UserId = normalUser.Id, BorrowDate = now.AddMonths(-2), DueDate = now.AddMonths(-2).AddDays(14), Status = BorrowStatus.Purchased, TotalAmount = 1881000,
-                Items = { new BorrowOrderItem { BookId = Pick("Design Patterns").Id, Quantity = 1, UnitPrice = 1881000, IsPurchase = true } } },
-            new() { UserId = extraUser1.Id, BorrowDate = now.AddMonths(-1), DueDate = now.AddMonths(-1).AddDays(14), Status = BorrowStatus.Returned, TotalAmount = 320000,
-                Items = { new BorrowOrderItem { BookId = Pick("Clean Code").Id, Quantity = 1, UnitPrice = 198000, IsPurchase = false }, new BorrowOrderItem { BookId = Pick("Design Patterns").Id, Quantity = 1, UnitPrice = 228000, IsPurchase = false } } },
-            new() { UserId = extraUser1.Id, BorrowDate = now.AddMonths(-3), DueDate = now.AddMonths(-3).AddDays(14), Status = BorrowStatus.Returned, TotalAmount = 189000,
-                Items = { new BorrowOrderItem { BookId = Pick("Refactoring").Id, Quantity = 1, UnitPrice = 260000, IsPurchase = false } } },
-            new() { UserId = extraUser2.Id, BorrowDate = now.AddMonths(-2), DueDate = now.AddMonths(-2).AddDays(14), Status = BorrowStatus.Returned, TotalAmount = 129000,
-                Items = { new BorrowOrderItem { BookId = Pick("Tam Ly Hoc Ve Tien").Id, Quantity = 1, UnitPrice = 116100, IsPurchase = false } } },
-            new() { UserId = extraUser2.Id, BorrowDate = now.AddDays(-20), DueDate = now.AddDays(-6), Status = BorrowStatus.Overdue, TotalAmount = 150000, LateFeeAmount = 27000,
-                Items = { new BorrowOrderItem { BookId = Pick("Thien Tai Ben Trai").Id, Quantity = 1, UnitPrice = 135000, IsPurchase = false } } },
-            new() { UserId = extraUser1.Id, BorrowDate = now.AddDays(-3), DueDate = now.AddDays(11), Status = BorrowStatus.Borrowing, TotalAmount = 172000,
-                Items = { new BorrowOrderItem { BookId = Pick("You Don't Know JS").Id, Quantity = 1, UnitPrice = 162000, IsPurchase = false } } }
+            new() { UserId = normalUser.Id, BorrowDate = now.AddDays(-10), DueDate = now.AddDays(1), Status = BorrowStatus.Borrowing, TotalAmount = 18000,
+                Items = { new BorrowOrderItem { BookId = Pick("Clean Code").Id, Quantity = 1, UnitPrice = 19800, IsPurchase = false } } },
+            new() { UserId = normalUser.Id, BorrowDate = now.AddMonths(-1), DueDate = now.AddMonths(-1).AddDays(14), Status = BorrowStatus.Returned, TotalAmount = 15000,
+                Items = { new BorrowOrderItem { BookId = Pick("Tam Ly Hoc Ve Tien").Id, Quantity = 1, UnitPrice = 11610, IsPurchase = false } } },
+            new() { UserId = normalUser.Id, BorrowDate = now.AddMonths(-2), DueDate = now.AddMonths(-2).AddDays(14), Status = BorrowStatus.Purchased, TotalAmount = 188100,
+                Items = { new BorrowOrderItem { BookId = Pick("Design Patterns").Id, Quantity = 1, UnitPrice = 188100, IsPurchase = true } } },
+            new() { UserId = extraUser1.Id, BorrowDate = now.AddMonths(-1), DueDate = now.AddMonths(-1).AddDays(14), Status = BorrowStatus.Returned, TotalAmount = 32000,
+                Items = { new BorrowOrderItem { BookId = Pick("Clean Code").Id, Quantity = 1, UnitPrice = 19800, IsPurchase = false }, new BorrowOrderItem { BookId = Pick("Design Patterns").Id, Quantity = 1, UnitPrice = 22800, IsPurchase = false } } },
+            new() { UserId = extraUser1.Id, BorrowDate = now.AddMonths(-3), DueDate = now.AddMonths(-3).AddDays(14), Status = BorrowStatus.Returned, TotalAmount = 18900,
+                Items = { new BorrowOrderItem { BookId = Pick("Refactoring").Id, Quantity = 1, UnitPrice = 26000, IsPurchase = false } } },
+            new() { UserId = extraUser2.Id, BorrowDate = now.AddMonths(-2), DueDate = now.AddMonths(-2).AddDays(14), Status = BorrowStatus.Returned, TotalAmount = 12900,
+                Items = { new BorrowOrderItem { BookId = Pick("Tam Ly Hoc Ve Tien").Id, Quantity = 1, UnitPrice = 11610, IsPurchase = false } } },
+            new() { UserId = extraUser2.Id, BorrowDate = now.AddDays(-20), DueDate = now.AddDays(-6), Status = BorrowStatus.Overdue, TotalAmount = 15000, LateFeeAmount = 2700,
+                Items = { new BorrowOrderItem { BookId = Pick("Thien Tai Ben Trai").Id, Quantity = 1, UnitPrice = 13500, IsPurchase = false } } },
+            new() { UserId = extraUser1.Id, BorrowDate = now.AddDays(-3), DueDate = now.AddDays(11), Status = BorrowStatus.Borrowing, TotalAmount = 17200,
+                Items = { new BorrowOrderItem { BookId = Pick("You Don't Know JS").Id, Quantity = 1, UnitPrice = 16200, IsPurchase = false } } }
         };
         dbContext.BorrowOrders.AddRange(orders);
 
@@ -238,6 +257,13 @@ public static class SeedData
             dbContext.Users.Select(u => new { u.Address, u.Phone }).FirstOrDefault();
             dbContext.BorrowOrderItems.Select(i => new { i.IsPurchase }).FirstOrDefault();
             dbContext.Notifications.Select(n => new { n.IsRead, n.Kind }).FirstOrDefault();
+
+            // Sentinel: nếu seed cũ có giá > 50.000 thì rebuild với giá /10 mới
+            var maxSeedPrice = dbContext.Books.OrderByDescending(b => b.BasePrice).Select(b => (decimal?)b.BasePrice).FirstOrDefault();
+            if (maxSeedPrice.HasValue && maxSeedPrice.Value >= 50000m)
+            {
+                return false;
+            }
             return true;
         }
         catch
